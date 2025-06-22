@@ -64,7 +64,99 @@
         }
         
         .input-field {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.3);<!DOCTYPE html>
+                } catch (error) {
+                    console.error("Error generating TOTP:", error);
+                    showAlert("Invalid secret key format.");
+                    resultSection.classList.add('hidden');
+                    totp = null;
+                    
+                    // Re-enable button
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-key mr-2"></i>Generate & Copy Code';
+                }
+            }
+            
+            async function updateCode() {
+                if (!totp) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                const token = await totp.generate();
+                currentCode = token;
+                totpCodeDisplay.textContent = token.slice(0, 3) + ' ' + token.slice(3);
+
+                const remainingTime = totp.getRemainingTime();
+                timerText.textContent = remainingTime;
+                updateTimerVisual(remainingTime);
+            }
+
+            function updateTimerVisual(seconds) {
+                const offset = ((30 - seconds) / 30) * CIRCUMFERENCE;
+                timerProgress.style.strokeDasharray = `${CIRCUMFERENCE}, ${CIRCUMFERENCE}`;
+                timerProgress.style.strokeDashoffset = offset;
+            }
+            
+            async function copyCodeToClipboard() {
+                if (currentCode && currentCode.length === 6) {
+                    try {
+                        await navigator.clipboard.writeText(currentCode);
+                        showSuccessMessage();
+                    } catch (error) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement("textarea");
+                        textArea.value = currentCode;
+                        textArea.style.position = "fixed"; 
+                        textArea.style.left = "-9999px";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            showSuccessMessage();
+                        } catch (err) {
+                            showAlert('Failed to copy code to clipboard.');
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                } else {
+                    showAlert('Failed to generate code.');
+                }
+            }
+            
+            function copyCode() {
+                copyCodeToClipboard();
+            }
+            
+            function showAlert(message) {
+                alertMessage.textContent = message;
+                successMessage.style.display = 'none';
+            }
+            
+            function showSuccessMessage() {
+                successMessage.style.display = 'block';
+                alertMessage.textContent = '';
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            generateBtn.addEventListener('click', generateTOTP);
+            copyBtn.addEventListener('click', copyCode);
+            
+            // Allow Enter key to generate code
+            secretKeyInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    generateTOTP();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             border-radius: 8px;
