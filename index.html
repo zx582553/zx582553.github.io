@@ -266,6 +266,17 @@
                 box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
             }
         }
+
+        .ad-container {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 24px auto;
+            text-align: center;
+            max-width: 320px;
+        }
     </style>
 </head>
 <body>
@@ -341,8 +352,30 @@
                     
                     <div id="alertMessage" class="mt-4 text-red-400 text-sm h-5 text-center"></div>
                 </div>
+
+                <!-- Native Ad -->
+                <div class="ad-container">
+                    <script type="text/javascript">
+                     atOptions = {
+                      'key' : '0833eb292d8fff52e4d0a16019e51258',
+                      'format' : 'iframe',
+                      'height' : 250,
+                      'width' : 300,
+                      'params' : {}
+                     };
+                    </script>
+                    <script type="text/javascript" src="//www.highperformanceformat.com/0833eb292d8fff52e4d0a16019e51258/invoke.js"></script>
+                </div>
             </div>
         </main>
+
+        <!-- Banner Ad (300x250) -->
+        <div class="relative z-10 max-w-7xl w-full mx-auto px-6 mb-8">
+            <div class="ad-container">
+                <script async="async" data-cfasync="false" src="//pl26980383.profitableratecpm.com/f9e41753a1084f59a5533c1eef2f219a/invoke.js"></script>
+                <div id="container-f9e41753a1084f59a5533c1eef2f219a"></div>
+            </div>
+        </div>
 
         <footer class="relative z-10 footer-gradient mt-16">
             <div class="max-w-7xl mx-auto px-6 py-12">
