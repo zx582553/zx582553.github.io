@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zx Tools - 2FA TOTP Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .gradient-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .purple-accent {
+            background: linear-gradient(90deg, #8B5CF6, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid;
+            border-radius: 16px;
+            position: relative;
+            animation: lightning-border 2s infinite linear;
+        }
+
+        @keyframes lightning-border {
+            0% { border-color: #00bfff; box-shadow: 0 0 20px #00bfff, inset 0 0 20px rgba(0, 191, 255, 0.1); }
+            25% { border-color: #8b5cf6; box-shadow: 0 0 20px #8b5cf6, inset 0 0 20px rgba(139, 92, 246, 0.1); }
+            50% { border-color: #ff1493; box-shadow: 0 0 20px #ff1493, inset 0 0 20px rgba(255, 20, 147, 0.1); }
+            75% { border-color: #00ff7f; box-shadow: 0 0 20px #00ff7f, inset 0 0 20px rgba(0, 255, 127, 0.1); }
+            100% { border-color: #00bfff; box-shadow: 0 0 20px #00bfff, inset 0 0 20px rgba(0, 191, 255, 0.1); }
+        }
+        
+        .input-field {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 8px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #8B5CF6;
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #A855F7);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            background: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #8B5CF6;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #8B5CF6, #A855F7);
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .timer-circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+        .timer-circle-fg {
+            fill: none;
+            stroke: #8B5CF6;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .code-display {
+            font-family: 'monospace';
+            letter-spacing: 0.5em;
+            background: rgba(0,0,0,0.2);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        /* Hide timer elements completely */
+        .timer-container {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
+        /* Hide copy button */
+        .copy-button-container {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
+        .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .social-icon:hover {
+            background: linear-gradient(135deg, #8B5CF6, #A855F7);
+            border-color: #8B5CF6;
+            color: #ffffff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+        }
+
+        .footer-gradient {
+            background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.05) 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Success message styling */
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            color: #22c55e;
+            padding: 12px;
+            text-align: center;
+            margin-top: 16px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .made-by-text {
+            display: inline-block;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(187, 134, 252, 0.6);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #bb86fc;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            margin: 0 auto;
+            animation: badge-color-cycle 3s infinite linear;
+        }
+
+        @keyframes badge-color-cycle {
+            0% { 
+                border-color: rgba(139, 92, 246, 0.8); 
+                box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+            }
+            20% { 
+                border-color: rgba(59, 130, 246, 0.8); 
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            }
+            40% { 
+                border-color: rgba(6, 182, 212, 0.8); 
+                box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+            }
+            60% { 
+                border-color: rgba(236, 72, 153, 0.8); 
+                box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+            }
+            80% { 
+                border-color: rgba(34, 197, 94, 0.8); 
+                box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+            }
+            100% { 
+                border-color: rgba(139, 92, 246, 0.8); 
+                box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-bg flex flex-col min-h-screen">
+        <header class="relative z-50 px-6 py-4">
+            <nav class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="text-2xl font-bold">
+                    <span class="text-white">ZX</span><span class="purple-accent">TOOLS</span>
+                </div>
+                
+                <div class="hidden md:flex space-x-8">
+      
+                </div>
+            
+            </nav>
+        </header>
+
+        <main class="relative z-10 flex-grow flex items-center justify-center max-w-7xl w-full mx-auto px-6">
+            <div class="w-full max-w-lg">
+                <div class="text-center mb-12">
+                    <h1 class="text-5xl md:text-6xl font-bold mb-4 leading-tight">
+                        <span class="text-white">2FA TOTP</span>
+                        <span class="purple-accent">Generator</span>
+                    </h1>
+                    <div class="max-w-2xl mx-auto leading-relaxed">
+                        <span class="made-by-text">MADE BY ABIR</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div>
+                        <label for="secretKey" class="block text-sm font-medium text-gray-300 mb-2">Enter your 2FA Secret Key</label>
+                        <input type="text" id="secretKey" class="input-field w-full p-3" placeholder="e.g. JBSWY3DPEHPK3PXP">
+                    </div>
+                    
+                    <div class="mt-6">
+                        <button id="generateBtn" class="btn-primary w-full py-3 text-lg font-semibold">
+                            <i class="fas fa-key mr-2"></i>
+                            Generate & Copy Code
+                        </button>
+                    </div>
+
+                    <div id="resultSection" class="mt-8 text-center hidden fade-in">
+                        <div class="flex items-center justify-center space-x-6">
+                            <div class="timer-container relative w-24 h-24">
+                                <svg class="w-full h-full" viewBox="0 0 36 36">
+                                    <path class="timer-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke-width="3"></path>
+                                    <path id="timerProgress" class="timer-circle-fg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke-width="3" stroke-dasharray="100, 100" stroke-dashoffset="100"></path>
+                                </svg>
+                                <div id="timerText" class="absolute inset-0 flex items-center justify-center text-2xl font-bold text-purple-300">
+                                    30
+                                </div>
+                            </div>
+                            <div class="flex-grow">
+                                <h2 id="totpCode" class="text-5xl font-bold text-white code-display">
+                                    - - - - - -
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div class="copy-button-container mt-6">
+                             <button id="copyBtn" class="btn-secondary w-full py-2 flex items-center justify-center">
+                                <i class="fas fa-copy mr-2"></i>
+                                Copy Code
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="successMessage" class="success-message">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        TOTP code generated and copied to clipboard!
+                    </div>
+                    
+                    <div id="alertMessage" class="mt-4 text-red-400 text-sm h-5 text-center"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="relative z-10 footer-gradient mt-16">
+            <div class="max-w-7xl mx-auto px-6 py-12">
+                <div class="text-center">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold mb-4">
+                            <span class="text-white">Connect with</span> 
+                            <span class="purple-accent">Zx Tools</span>
+                        </h3>
+                        <p class="text-gray-400 mb-6">Follow us on social media </p>
+                        
+                        <div class="flex justify-center space-x-6">
+                            <a href="https://www.facebook.com/zxerrors" target="_blank" rel="noopener noreferrer" class="social-icon" title="Facebook">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="https://www.instagram.com/99_jods?igsh=MWt0eGtobHlmdTBnMQ==" target="_blank" rel="noopener noreferrer" class="social-icon" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="https://t.me/+RmaHgTJATfU2YTE1" target="_blank" rel="noopener noreferrer" class="social-icon" title="Telegram">
+                                <i class="fab fa-telegram-plane"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-800 pt-8">
+                        <p class="text-gray-500 text-sm">
+                            &copy; 2025 Zx Tools. Secure and reliable.
+                        </p>
+                        <p class="text-gray-600 text-xs mt-2">
+                            Built with ❤️ for developers worldwide
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- TOTP Implementation -->
+    <script>
+        class TOTP {
+            constructor(secret, period = 30) {
+                this.secret = this.base32ToBytes(secret);
+                this.period = period;
+            }
+
+            base32ToBytes(base32) {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                let bits = '';
+                for (let i = 0; i < base32.length; i++) {
+                    const char = base32.charAt(i).toUpperCase();
+                    const index = alphabet.indexOf(char);
+                    if (index === -1) throw new Error('Invalid base32 character');
+                    bits += index.toString(2).padStart(5, '0');
+                }
+                
+                const bytes = [];
+                for (let i = 0; i < bits.length; i += 8) {
+                    if (i + 8 <= bits.length) {
+                        bytes.push(parseInt(bits.substr(i, 8), 2));
+                    }
+                }
+                return new Uint8Array(bytes);
+            }
+
+            async hmacSha1(key, message) {
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+                );
+                const signature = await crypto.subtle.sign('HMAC', cryptoKey, message);
+                return new Uint8Array(signature);
+            }
+
+            async generate(timestamp = Date.now()) {
+                const counter = Math.floor(timestamp / 1000 / this.period);
+                const counterBytes = new ArrayBuffer(8);
+                const counterView = new DataView(counterBytes);
+                counterView.setUint32(4, counter, false);
+
+                const hash = await this.hmacSha1(this.secret, counterBytes);
+                const offset = hash[hash.length - 1] & 0x0f;
+                const code = ((hash[offset] & 0x7f) << 24) |
+                            ((hash[offset + 1] & 0xff) << 16) |
+                            ((hash[offset + 2] & 0xff) << 8) |
+                            (hash[offset + 3] & 0xff);
+
+                return (code % 1000000).toString().padStart(6, '0');
+            }
+
+            getRemainingTime(timestamp = Date.now()) {
+                return this.period - Math.floor(timestamp / 1000) % this.period;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const secretKeyInput = document.getElementById('secretKey');
+            const generateBtn = document.getElementById('generateBtn');
+            const resultSection = document.getElementById('resultSection');
+            const totpCodeDisplay = document.getElementById('totpCode');
+            const timerText = document.getElementById('timerText');
+            const timerProgress = document.getElementById('timerProgress');
+            const copyBtn = document.getElementById('copyBtn');
+            const alertMessage = document.getElementById('alertMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            let totp = null;
+            let timerInterval = null;
+            let currentCode = '';
+            const RADIUS = 15.9155;
+            const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+            async function generateTOTP() {
+                if (timerInterval) clearInterval(timerInterval);
+                
+                const secret = secretKeyInput.value.replace(/[\s\-=]/g, '').toUpperCase();
+                if (!secret) {
+                    showAlert('Please enter a secret key.');
+                    return;
+                }
+
+                try {
+                    // Disable button temporarily
+                    generateBtn.disabled = true;
+                    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+                    
+                    totp = new TOTP(secret);
+                    resultSection.classList.remove('hidden');
+                    await updateCode();
+                    
+                    // Automatically copy the generated code to clipboard
+                    await copyCodeToClipboard();
+                    
+                    timerInterval = setInterval(updateCode, 1000);
+                    showAlert('');
+                    
+                    // Re-enable button
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-key mr-2"></i>Generate & Copy Code';
+                    
+                } catch (error) {
+                    console.error("Error generating TOTP:", error);
+                    showAlert("Invalid secret key format.");
+                    resultSection.classList.add('hidden');
+                    totp = null;
+                    
+                    // Re-enable button
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-key mr-2"></i>Generate & Copy Code';
+                }
+            }
+            
+            async function updateCode() {
+                if (!totp) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                const token = await totp.generate();
+                currentCode = token;
+                totpCodeDisplay.textContent = token.slice(0, 3) + ' ' + token.slice(3);
+
+                const remainingTime = totp.getRemainingTime();
+                timerText.textContent = remainingTime;
+                updateTimerVisual(remainingTime);
+            }
+
+            function updateTimerVisual(seconds) {
+                const offset = ((30 - seconds) / 30) * CIRCUMFERENCE;
+                timerProgress.style.strokeDasharray = `${CIRCUMFERENCE}, ${CIRCUMFERENCE}`;
+                timerProgress.style.strokeDashoffset = offset;
+            }
+            
+            async function copyCodeToClipboard() {
+                if (currentCode && currentCode.length === 6) {
+                    try {
+                        await navigator.clipboard.writeText(currentCode);
+                        showSuccessMessage();
+                    } catch (error) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement("textarea");
+                        textArea.value = currentCode;
+                        textArea.style.position = "fixed"; 
+                        textArea.style.left = "-9999px";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            showSuccessMessage();
+                        } catch (err) {
+                            showAlert('Failed to copy code to clipboard.');
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                } else {
+                    showAlert('Failed to generate code.');
+                }
+            }
+            
+            function copyCode() {
+                copyCodeToClipboard();
+            }
+            
+            function showAlert(message) {
+                alertMessage.textContent = message;
+                successMessage.style.display = 'none';
+            }
+            
+            function showSuccessMessage() {
+                successMessage.style.display = 'block';
+                alertMessage.textContent = '';
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            generateBtn.addEventListener('click', generateTOTP);
+            copyBtn.addEventListener('click', copyCode);
+            
+            // Allow Enter key to generate code
+            secretKeyInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    generateTOTP();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
